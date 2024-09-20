@@ -16,6 +16,7 @@ import {
   Container,
   Heading,
   HStack,
+  IconButton,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -124,15 +125,14 @@ function App() {
         <Text fontSize="xl" textAlign="center">
           Total Distance: {(totalDistance / 1000).toFixed(2)} km
         </Text>
-        <HStack spacing={4} justify="center">
-          <Button
-            leftIcon={<FaLocationDot />}
+        <HStack spacing={2} justify={"center"}>
+          <IconButton
+            icon={<FaLocationDot />}
+            aria-label="Get Location"
             colorScheme="teal"
             onClick={getLocation}
             isDisabled={markers.length > 0}
-          >
-            Localize
-          </Button>
+          ></IconButton>
           <Button colorScheme="teal" onClick={resetMarkers}>
             Reset Markers
           </Button>
