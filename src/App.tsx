@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Polyline,
   useMapEvents,
+  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L, { LatLng } from "leaflet";
@@ -18,6 +19,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { FaLocationDot } from "react-icons/fa6";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -38,14 +40,25 @@ interface MapWithPathProps {
   onAddMarker: (latlng: LatLng) => void;
   markers: LatLng[];
   polyline: LatLng[];
+  center: LatLng;
 }
 
-function MapWithPath({ onAddMarker, markers, polyline }: MapWithPathProps) {
+function MapWithPath({
+  onAddMarker,
+  markers,
+  polyline,
+  center,
+}: MapWithPathProps) {
   useMapEvents({
     click(e) {
       onAddMarker(e.latlng);
     },
   });
+
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, 13);
+  }, [center]);
 
   return (
     <>
@@ -59,6 +72,7 @@ function MapWithPath({ onAddMarker, markers, polyline }: MapWithPathProps) {
 
 function App() {
   const [markers, setMarkers] = useState<LatLng[]>([]);
+  const [center, setCenter] = useState<LatLng>(new LatLng(52.4064, 16.9252));
   const [totalDistance, setTotalDistance] = useState<number>(0);
 
   const addMarker = (latlng: LatLng) => {
@@ -90,6 +104,17 @@ function App() {
     calculateDistance(newMarkers);
   };
 
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latlng = new LatLng(
+        position.coords.latitude,
+        position.coords.longitude,
+      );
+      addMarker(latlng);
+      setCenter(latlng);
+    });
+  };
+
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={4} align="stretch">
@@ -100,6 +125,14 @@ function App() {
           Total Distance: {(totalDistance / 1000).toFixed(2)} km
         </Text>
         <HStack spacing={4} justify="center">
+          <Button
+            leftIcon={<FaLocationDot />}
+            colorScheme="teal"
+            onClick={getLocation}
+            isDisabled={markers.length > 0}
+          >
+            Localize
+          </Button>
           <Button colorScheme="teal" onClick={resetMarkers}>
             Reset Markers
           </Button>
@@ -108,11 +141,7 @@ function App() {
           </Button>
         </HStack>
         <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
-          <MapContainer
-            center={[52.4064, 16.9252]}
-            zoom={13}
-            style={{ height: "70vh" }}
-          >
+          <MapContainer center={center} zoom={13} style={{ height: "70vh" }}>
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -121,6 +150,7 @@ function App() {
               markers={markers}
               polyline={markers}
               onAddMarker={addMarker}
+              center={center}
             />
           </MapContainer>
         </Box>
