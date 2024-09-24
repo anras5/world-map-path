@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/world-map-path/sw.js', { scope: '/world-map-path/' })})}
