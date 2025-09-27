@@ -1,111 +1,79 @@
-import { useState, useEffect } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  useMapEvents,
-  useMap,
-} from "react-leaflet";
+import { useState, useEffect, useCallback } from "react";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L, { LatLng } from "leaflet";
+import { LatLng } from "leaflet";
 import * as turf from "@turf/turf";
 import {
   Box,
-  Button,
   Container,
   Heading,
-  HStack,
-  IconButton,
   Text,
+  useDisclosure,
   VStack,
 } from "@chakra-ui/react";
-import { FaLocationDot } from "react-icons/fa6";
-
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-// Creating a custom icon
-const customIcon = new L.Icon({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41], // size of the icon
-  iconAnchor: [12, 41], // point of the icon which will correspond to marker's location
-  popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
-  shadowSize: [41, 41], // size of the shadow
-});
-
-interface MapWithPathProps {
-  onAddMarker: (latlng: LatLng) => void;
-  markers: LatLng[];
-  polyline: LatLng[];
-  center: LatLng;
-}
-
-function MapWithPath({
-  onAddMarker,
-  markers,
-  polyline,
-  center,
-}: MapWithPathProps) {
-  useMapEvents({
-    click(e) {
-      onAddMarker(e.latlng);
-    },
-  });
-
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo(center, 13);
-  }, [center]);
-
-  return (
-    <>
-      {markers.map((position, idx) => (
-        <Marker key={idx} position={position} icon={customIcon} />
-      ))}
-      <Polyline positions={polyline} color="teal" />
-    </>
-  );
-}
+import SavePathModal from "./components/SavePathModal";
+import LoadPathModal from "./components/LoadPathModal";
+import UserGuideModal from "./components/UserGuideModal";
+import MapWithPath from "./components/MapWithPath";
+import { BasicControls, PathControls } from "./components/MapControls";
 
 function App() {
   const [markers, setMarkers] = useState<LatLng[]>([]);
   const [center, setCenter] = useState<LatLng>(new LatLng(52.4064, 16.9252));
   const [totalDistance, setTotalDistance] = useState<number>(0);
+  const {
+    isOpen: isSaveModalOpen,
+    onOpen: onOpenSaveModal,
+    onClose: onCloseSaveModal,
+  } = useDisclosure();
+  const {
+    isOpen: isLoadModalOpen,
+    onOpen: onOpenLoadModal,
+    onClose: onCloseLoadModal,
+  } = useDisclosure();
+  const {
+    isOpen: isUserGuideOpen,
+    onOpen: onOpenUserGuide,
+    onClose: onCloseUserGuide,
+  } = useDisclosure();
 
-  const addMarker = (latlng: LatLng) => {
-    const newMarkers = [...markers, latlng];
-    setMarkers(newMarkers);
-    calculateDistance(newMarkers);
-  };
-
-  const calculateDistance = (markers: LatLng[]) => {
+  // Core functionality
+  // Calculate the total distance of a path
+  const calculateDistance = useCallback((markers: LatLng[]) => {
     let distance = 0;
     for (let i = 0; i < markers.length - 1; i++) {
       const from = turf.point([markers[i].lng, markers[i].lat]);
       const to = turf.point([markers[i + 1].lng, markers[i + 1].lat]);
       distance += turf.distance(from, to, { units: "meters" });
     }
-
     setTotalDistance(distance);
-  };
+  }, []);
 
-  const resetMarkers = () => {
+  // Add a new marker to the path
+  const addMarker = useCallback(
+    (latlng: LatLng) => {
+      const newMarkers = [...markers, latlng];
+      setMarkers(newMarkers);
+      calculateDistance(newMarkers);
+    },
+    [markers, calculateDistance],
+  );
+
+  const resetMarkers = useCallback(() => {
     setMarkers([]);
     setTotalDistance(0);
-  };
+  }, []);
 
-  const removeLastMarker = () => {
-    const newMarkers = [...markers];
-    newMarkers.pop();
-    setMarkers(newMarkers);
-    calculateDistance(newMarkers);
-  };
+  const removeLastMarker = useCallback(() => {
+    if (markers.length > 0) {
+      const newMarkers = [...markers];
+      newMarkers.pop();
+      setMarkers(newMarkers);
+      calculateDistance(newMarkers);
+    }
+  }, [markers, calculateDistance]);
 
-  const getLocation = () => {
+  const getLocation = useCallback(() => {
     navigator.geolocation.getCurrentPosition((position) => {
       const latlng = new LatLng(
         position.coords.latitude,
@@ -114,7 +82,34 @@ function App() {
       addMarker(latlng);
       setCenter(latlng);
     });
-  };
+  }, [addMarker, setCenter]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+Z or Cmd+Z
+      if ((event.ctrlKey || event.metaKey) && event.key === "z") {
+        event.preventDefault();
+        removeLastMarker();
+      }
+
+      // Check for Ctrl+S or Cmd+S
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        if (markers.length >= 2) {
+          onOpenSaveModal();
+        }
+      }
+    };
+
+    // Add event listener
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Clean up
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [removeLastMarker, onOpenSaveModal, markers]);
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -125,23 +120,15 @@ function App() {
         <Text fontSize="xl" textAlign="center">
           Total Distance: {(totalDistance / 1000).toFixed(2)} km
         </Text>
-        <HStack spacing={2} justify={"center"}>
-          <IconButton
-            icon={<FaLocationDot />}
-            aria-label="Get Location"
-            colorScheme="teal"
-            onClick={getLocation}
-            isDisabled={markers.length > 0}
-          ></IconButton>
-          <Button colorScheme="teal" onClick={resetMarkers}>
-            Reset Markers
-          </Button>
-          <Button colorScheme="teal" onClick={removeLastMarker}>
-            Remove Last Marker
-          </Button>
-        </HStack>
+
+        <BasicControls
+          onGetLocation={getLocation}
+          onResetMarkers={resetMarkers}
+          onRemoveLastMarker={removeLastMarker}
+        />
+
         <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
-          <MapContainer center={center} zoom={13} style={{ height: "70vh" }}>
+          <MapContainer center={center} zoom={15} style={{ height: "70vh" }}>
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -154,7 +141,49 @@ function App() {
             />
           </MapContainer>
         </Box>
+
+        <PathControls
+          onOpenSaveModal={onOpenSaveModal}
+          onOpenLoadModal={onOpenLoadModal}
+          markersLength={markers.length}
+        />
+
+        {/* Modals */}
+        <SavePathModal
+          isOpen={isSaveModalOpen}
+          onClose={onCloseSaveModal}
+          markers={markers}
+          totalDistance={totalDistance}
+        />
+        <LoadPathModal
+          isOpen={isLoadModalOpen}
+          onClose={onCloseLoadModal}
+          onLoadPath={(loadedMarkers) => {
+            setMarkers(loadedMarkers);
+            calculateDistance(loadedMarkers);
+
+            // If markers exist, center on the first marker
+            if (loadedMarkers.length > 0) {
+              setCenter(loadedMarkers[0]);
+            }
+          }}
+        />
+        <UserGuideModal isOpen={isUserGuideOpen} onClose={onCloseUserGuide} />
       </VStack>
+
+      {/* Footer */}
+      <Box as="footer" mt={8} textAlign="center" pb={4}>
+        <Text
+          as="span"
+          color="teal.500"
+          cursor="pointer"
+          textDecoration="underline"
+          fontWeight="medium"
+          onClick={onOpenUserGuide}
+        >
+          How to use?
+        </Text>
+      </Box>
     </Container>
   );
 }
