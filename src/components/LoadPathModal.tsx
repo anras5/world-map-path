@@ -10,7 +10,6 @@ import {
   Text,
   Box,
   HStack,
-  Icon,
   useToast,
   Divider,
   Badge,
@@ -40,9 +39,81 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
   const [savedPaths, setSavedPaths] = useState<SavedPathsRecord>({});
   const toast = useToast();
 
+  // Function to load saved paths from localStorage
   const loadSavedPaths = () => {
     const paths = JSON.parse(localStorage.getItem("savedPaths") || "{}");
     setSavedPaths(paths);
+  };
+
+  // Function to handle importing path from clipboard
+  const handleImportFromClipboard = () => {
+    navigator.clipboard
+      .readText()
+      .then((text) => {
+        try {
+          // Parse clipboard content
+          const pathData = JSON.parse(text);
+
+          if (
+            !pathData.name ||
+            !pathData.markers ||
+            !Array.isArray(pathData.markers)
+          ) {
+            throw new Error("Invalid path format");
+          }
+
+          // Get existing paths
+          const savedPaths = JSON.parse(
+            localStorage.getItem("savedPaths") || "{}",
+          );
+
+          // Check if the name already exists, make it unique if needed
+          let uniqueName = pathData.name;
+          let counter = 1;
+          while (savedPaths[uniqueName]) {
+            uniqueName = `${pathData.name} (${counter})`;
+            counter++;
+          }
+
+          // Add the new path
+          savedPaths[uniqueName] = {
+            markers: pathData.markers,
+            distance: pathData.distance || 0,
+            createdAt: new Date().toISOString(),
+          };
+
+          // Save to localStorage
+          localStorage.setItem("savedPaths", JSON.stringify(savedPaths));
+
+          // Update the UI
+          loadSavedPaths();
+
+          toast({
+            title: "Path imported",
+            description: `Path "${uniqueName}" imported successfully`,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+        } catch (error) {
+          toast({
+            title: "Import failed",
+            description: `Could not import path: ${error instanceof Error ? error.message : "Invalid format"}`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      })
+      .catch((error) => {
+        toast({
+          title: "Clipboard access failed",
+          description: `Could not access clipboard: ${error}`,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
   };
 
   useEffect(() => {
@@ -149,9 +220,9 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Load Saved Path</ModalHeader>
+        <ModalHeader>Load Path</ModalHeader>
         <ModalCloseButton />
-        <ModalBody pb={6}>
+        <ModalBody pb={6} display="flex" flexDirection="column">
           {Object.keys(savedPaths).length === 0 ? (
             <Text color="gray.500" textAlign="center" py={4}>
               No saved paths found
@@ -205,6 +276,23 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
               ))}
             </VStack>
           )}
+
+          <Divider my={4} />
+
+          <Box mt={4}>
+            <HStack>
+              <Button
+                size="sm"
+                colorScheme="teal"
+                onClick={handleImportFromClipboard}
+              >
+                Import from Clipboard
+              </Button>
+            </HStack>
+            <Text fontSize="xs" color="gray.500" mt={1}>
+              Paste a previously copied path to import it to your saved paths
+            </Text>
+          </Box>
         </ModalBody>
       </ModalContent>
     </Modal>
