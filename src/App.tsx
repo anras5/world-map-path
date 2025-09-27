@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -26,6 +26,7 @@ import { BsSave } from "react-icons/bs";
 import { AiOutlineFolder } from "react-icons/ai";
 import SavePathModal from "./components/SavePathModal";
 import LoadPathModal from "./components/LoadPathModal";
+import UserGuideModal from "./components/UserGuideModal";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -63,7 +64,7 @@ function MapWithPath({
 
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, 13);
+    map.flyTo(center, 15);
   }, [center, map]);
 
   return (
@@ -90,6 +91,11 @@ function App() {
     onOpen: onOpenLoadModal,
     onClose: onCloseLoadModal,
   } = useDisclosure();
+  const {
+    isOpen: isUserGuideOpen,
+    onOpen: onOpenUserGuide,
+    onClose: onCloseUserGuide,
+  } = useDisclosure();
 
   const addMarker = (latlng: LatLng) => {
     const newMarkers = [...markers, latlng];
@@ -97,7 +103,7 @@ function App() {
     calculateDistance(newMarkers);
   };
 
-  const calculateDistance = (markers: LatLng[]) => {
+  const calculateDistance = useCallback((markers: LatLng[]) => {
     let distance = 0;
     for (let i = 0; i < markers.length - 1; i++) {
       const from = turf.point([markers[i].lng, markers[i].lat]);
@@ -106,19 +112,48 @@ function App() {
     }
 
     setTotalDistance(distance);
-  };
+  }, []);
 
   const resetMarkers = () => {
     setMarkers([]);
     setTotalDistance(0);
   };
 
-  const removeLastMarker = () => {
-    const newMarkers = [...markers];
-    newMarkers.pop();
-    setMarkers(newMarkers);
-    calculateDistance(newMarkers);
-  };
+  const removeLastMarker = useCallback(() => {
+    if (markers.length > 0) {
+      const newMarkers = [...markers];
+      newMarkers.pop();
+      setMarkers(newMarkers);
+      calculateDistance(newMarkers);
+    }
+  }, [markers, calculateDistance]);
+
+  // Add keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+Z or Cmd+Z
+      if ((event.ctrlKey || event.metaKey) && event.key === "z") {
+        event.preventDefault();
+        removeLastMarker();
+      }
+
+      // Check for Ctrl+S or Cmd+S
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        if (markers.length >= 2) {
+          onOpenSaveModal();
+        }
+      }
+    };
+
+    // Add event listener
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Clean up
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [removeLastMarker, onOpenSaveModal, markers]);
 
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -167,7 +202,6 @@ function App() {
             />
           </MapContainer>
         </Box>
-
         <HStack spacing={2} justify={"center"} mb={2}>
           <Button
             leftIcon={<BsSave />}
@@ -187,7 +221,6 @@ function App() {
             Load path
           </Button>
         </HStack>
-
         {/*modals*/}
         <SavePathModal
           isOpen={isSaveModalOpen}
@@ -208,7 +241,20 @@ function App() {
             }
           }}
         />
+        <UserGuideModal isOpen={isUserGuideOpen} onClose={onCloseUserGuide} />
       </VStack>
+      <Box textAlign="center" mt={2}>
+        <Text
+          as="span"
+          color="teal.500"
+          cursor="pointer"
+          textDecoration="underline"
+          fontWeight="medium"
+          onClick={onOpenUserGuide}
+        >
+          How to use?
+        </Text>
+      </Box>
     </Container>
   );
 }
