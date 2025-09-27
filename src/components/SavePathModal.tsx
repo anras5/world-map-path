@@ -68,7 +68,7 @@ const SavePathModal = ({
       title: "Path saved",
       description: `"${pathName}" has been saved successfully`,
       status: "success",
-      duration: 3000,
+      duration: 1500,
       isClosable: true,
     });
 
