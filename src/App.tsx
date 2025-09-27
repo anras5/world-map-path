@@ -139,29 +139,6 @@ function App() {
         <Text fontSize="xl" textAlign="center">
           Total Distance: {(totalDistance / 1000).toFixed(2)} km
         </Text>
-        <HStack spacing={2} justify={"center"} mb={2}>
-          <Button
-            leftIcon={<BsSave />}
-            onClick={onOpenSaveModal}
-            variant="outline"
-            borderColor="orange.500"
-            color="orange.500"
-            _hover={{ bg: "orange.50" }}
-            isDisabled={markers.length < 2}
-          >
-            Save path
-          </Button>
-          <Button
-            leftIcon={<AiOutlineFolder />}
-            onClick={onOpenLoadModal}
-            variant="outline"
-            borderColor="orange.500"
-            color="orange.500"
-            _hover={{ bg: "orange.50" }}
-          >
-            Load path
-          </Button>
-        </HStack>
         <HStack spacing={2} justify={"center"}>
           <IconButton
             icon={<FaLocationDot />}
@@ -190,6 +167,26 @@ function App() {
             />
           </MapContainer>
         </Box>
+
+        <HStack spacing={2} justify={"center"} mb={2}>
+          <Button
+            leftIcon={<BsSave />}
+            onClick={onOpenSaveModal}
+            variant="outline"
+            colorScheme="orange"
+            isDisabled={markers.length < 2}
+          >
+            Save path
+          </Button>
+          <Button
+            leftIcon={<AiOutlineFolder />}
+            onClick={onOpenLoadModal}
+            variant="outline"
+            colorScheme="orange"
+          >
+            Load path
+          </Button>
+        </HStack>
 
         {/*modals*/}
         <SavePathModal

@@ -14,6 +14,7 @@ import {
   Divider,
   Badge,
   IconButton,
+  Tooltip,
 } from "@chakra-ui/react";
 import { BsArrowRight, BsTrash, BsCopy } from "react-icons/bs";
 import { useState, useEffect } from "react";
@@ -249,27 +250,37 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
                       </Badge>
                     </VStack>
                     <HStack spacing={1}>
-                      <IconButton
-                        icon={<BsTrash />}
-                        colorScheme="red"
-                        size="sm"
-                        aria-label="Delete path"
-                        onClick={() => handleDeletePath(name)}
-                      />
-                      <IconButton
-                        icon={<BsCopy />}
-                        colorScheme="blue"
-                        size="sm"
-                        aria-label="Copy path"
-                        onClick={() => handleCopyPath(name)}
-                      />
-                      <IconButton
-                        icon={<BsArrowRight />}
-                        colorScheme="orange"
-                        size="sm"
-                        aria-label="Load path"
-                        onClick={() => handleLoadPath(name)}
-                      />
+                      <Tooltip hasArrow label="Delete path" placement="top">
+                        <IconButton
+                          icon={<BsTrash />}
+                          colorScheme="red"
+                          size="sm"
+                          aria-label="Delete path"
+                          onClick={() => handleDeletePath(name)}
+                        />
+                      </Tooltip>
+                      <Tooltip
+                        hasArrow
+                        label="Copy to clipboard"
+                        placement="top"
+                      >
+                        <IconButton
+                          icon={<BsCopy />}
+                          colorScheme="blue"
+                          size="sm"
+                          aria-label="Copy path"
+                          onClick={() => handleCopyPath(name)}
+                        />
+                      </Tooltip>
+                      <Tooltip hasArrow label="Load path" placement="top">
+                        <IconButton
+                          icon={<BsArrowRight />}
+                          colorScheme="orange"
+                          size="sm"
+                          aria-label="Load path"
+                          onClick={() => handleLoadPath(name)}
+                        />
+                      </Tooltip>
                     </HStack>
                   </HStack>
                 </Box>
@@ -290,7 +301,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
               </Button>
             </HStack>
             <Text fontSize="xs" color="gray.500" mt={1}>
-              Paste a previously copied path to import it to your saved paths
+              Paste a previously copied path to import it to your saved paths.
             </Text>
           </Box>
         </ModalBody>
