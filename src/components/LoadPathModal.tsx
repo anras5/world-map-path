@@ -93,7 +93,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
             title: "Path imported",
             description: `Path "${uniqueName}" imported successfully`,
             status: "success",
-            duration: 3000,
+            duration: 2000,
             isClosable: true,
           });
         } catch (error) {
@@ -101,7 +101,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
             title: "Import failed",
             description: `Could not import path: ${error instanceof Error ? error.message : "Invalid format"}`,
             status: "error",
-            duration: 3000,
+            duration: 2000,
             isClosable: true,
           });
         }
@@ -111,7 +111,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
           title: "Clipboard access failed",
           description: `Could not access clipboard: ${error}`,
           status: "error",
-          duration: 3000,
+          duration: 2000,
           isClosable: true,
         });
       });
@@ -141,7 +141,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
       title: "Path loaded",
       description: `"${pathName}" has been loaded successfully`,
       status: "success",
-      duration: 3000,
+      duration: 2000,
       isClosable: true,
     });
 
@@ -171,7 +171,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
           title: "Path copied",
           description: `"${pathName}" has been copied to clipboard`,
           status: "success",
-          duration: 3000,
+          duration: 2000,
           isClosable: true,
         });
       })
@@ -181,7 +181,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
           title: "Copy failed",
           description: `Failed to copy: ${err}`,
           status: "error",
-          duration: 3000,
+          duration: 2000,
           isClosable: true,
         });
       });
@@ -206,7 +206,7 @@ const LoadPathModal = ({ isOpen, onClose, onLoadPath }: LoadPathModalProps) => {
       title: "Path deleted",
       description: `"${pathName}" has been deleted successfully`,
       status: "info",
-      duration: 3000,
+      duration: 2000,
       isClosable: true,
     });
   };
