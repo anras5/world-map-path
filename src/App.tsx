@@ -25,6 +25,7 @@ import { FaLocationDot } from "react-icons/fa6";
 import { BsSave } from "react-icons/bs";
 import { AiOutlineFolder } from "react-icons/ai";
 import SavePathModal from "./components/SavePathModal";
+import LoadPathModal from "./components/LoadPathModal";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -79,7 +80,16 @@ function App() {
   const [markers, setMarkers] = useState<LatLng[]>([]);
   const [center, setCenter] = useState<LatLng>(new LatLng(52.4064, 16.9252));
   const [totalDistance, setTotalDistance] = useState<number>(0);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isSaveModalOpen,
+    onOpen: onOpenSaveModal,
+    onClose: onCloseSaveModal,
+  } = useDisclosure();
+  const {
+    isOpen: isLoadModalOpen,
+    onOpen: onOpenLoadModal,
+    onClose: onCloseLoadModal,
+  } = useDisclosure();
 
   const addMarker = (latlng: LatLng) => {
     const newMarkers = [...markers, latlng];
@@ -129,6 +139,29 @@ function App() {
         <Text fontSize="xl" textAlign="center">
           Total Distance: {(totalDistance / 1000).toFixed(2)} km
         </Text>
+        <HStack spacing={2} justify={"center"} mb={2}>
+          <Button
+            leftIcon={<BsSave />}
+            onClick={onOpenSaveModal}
+            variant="outline"
+            borderColor="orange.500"
+            color="orange.500"
+            _hover={{ bg: "orange.50" }}
+            isDisabled={markers.length < 2}
+          >
+            Save path
+          </Button>
+          <Button
+            leftIcon={<AiOutlineFolder />}
+            onClick={onOpenLoadModal}
+            variant="outline"
+            borderColor="orange.500"
+            color="orange.500"
+            _hover={{ bg: "orange.50" }}
+          >
+            Load path
+          </Button>
+        </HStack>
         <HStack spacing={2} justify={"center"}>
           <IconButton
             icon={<FaLocationDot />}
@@ -157,31 +190,26 @@ function App() {
             />
           </MapContainer>
         </Box>
-        <HStack spacing={2} justify={"center"}>
-          <Button
-            leftIcon={<BsSave />}
-            onClick={onOpen}
-            variant="outline"
-            colorScheme="orange"
-            isDisabled={markers.length < 2}
-          >
-            Save path
-          </Button>
-          <Button
-            leftIcon={<AiOutlineFolder />}
-            variant="outline"
-            colorScheme="orange"
-          >
-            Load path
-          </Button>
-        </HStack>
 
         {/*modals*/}
         <SavePathModal
-          isOpen={isOpen}
-          onClose={onClose}
+          isOpen={isSaveModalOpen}
+          onClose={onCloseSaveModal}
           markers={markers}
           totalDistance={totalDistance}
+        />
+        <LoadPathModal
+          isOpen={isLoadModalOpen}
+          onClose={onCloseLoadModal}
+          onLoadPath={(loadedMarkers) => {
+            setMarkers(loadedMarkers);
+            calculateDistance(loadedMarkers);
+
+            // If markers exist, center on the first marker
+            if (loadedMarkers.length > 0) {
+              setCenter(loadedMarkers[0]);
+            }
+          }}
         />
       </VStack>
     </Container>
