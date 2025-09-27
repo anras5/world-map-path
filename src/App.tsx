@@ -18,9 +18,13 @@ import {
   HStack,
   IconButton,
   Text,
+  useDisclosure,
   VStack,
 } from "@chakra-ui/react";
 import { FaLocationDot } from "react-icons/fa6";
+import { BsSave } from "react-icons/bs";
+import { AiOutlineFolder } from "react-icons/ai";
+import SavePathModal from "./components/SavePathModal";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -59,7 +63,7 @@ function MapWithPath({
   const map = useMap();
   useEffect(() => {
     map.flyTo(center, 13);
-  }, [center]);
+  }, [center, map]);
 
   return (
     <>
@@ -75,6 +79,7 @@ function App() {
   const [markers, setMarkers] = useState<LatLng[]>([]);
   const [center, setCenter] = useState<LatLng>(new LatLng(52.4064, 16.9252));
   const [totalDistance, setTotalDistance] = useState<number>(0);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const addMarker = (latlng: LatLng) => {
     const newMarkers = [...markers, latlng];
@@ -111,7 +116,6 @@ function App() {
         position.coords.latitude,
         position.coords.longitude,
       );
-      addMarker(latlng);
       setCenter(latlng);
     });
   };
@@ -131,7 +135,6 @@ function App() {
             aria-label="Get Location"
             colorScheme="teal"
             onClick={getLocation}
-            isDisabled={markers.length > 0}
           ></IconButton>
           <Button colorScheme="teal" onClick={resetMarkers}>
             Reset Markers
@@ -154,6 +157,32 @@ function App() {
             />
           </MapContainer>
         </Box>
+        <HStack spacing={2} justify={"center"}>
+          <Button
+            leftIcon={<BsSave />}
+            onClick={onOpen}
+            variant="outline"
+            colorScheme="orange"
+            isDisabled={markers.length < 2}
+          >
+            Save path
+          </Button>
+          <Button
+            leftIcon={<AiOutlineFolder />}
+            variant="outline"
+            colorScheme="orange"
+          >
+            Load path
+          </Button>
+        </HStack>
+
+        {/*modals*/}
+        <SavePathModal
+          isOpen={isOpen}
+          onClose={onClose}
+          markers={markers}
+          totalDistance={totalDistance}
+        />
       </VStack>
     </Container>
   );
