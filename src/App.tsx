@@ -1,81 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  useMapEvents,
-  useMap,
-} from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L, { LatLng } from "leaflet";
+import { LatLng } from "leaflet";
 import * as turf from "@turf/turf";
 import {
   Box,
-  Button,
   Container,
   Heading,
-  HStack,
-  IconButton,
   Text,
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
-import { FaLocationDot } from "react-icons/fa6";
-import { BsSave } from "react-icons/bs";
-import { AiOutlineFolder } from "react-icons/ai";
 import SavePathModal from "./components/SavePathModal";
 import LoadPathModal from "./components/LoadPathModal";
 import UserGuideModal from "./components/UserGuideModal";
-
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-// Creating a custom icon
-const customIcon = new L.Icon({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [15, 26], // size of the icon
-  iconAnchor: [8, 26], // point of the icon which will correspond to marker's location
-  popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
-  shadowSize: [26, 26], // size of the shadow
-});
-
-interface MapWithPathProps {
-  onAddMarker: (latlng: LatLng) => void;
-  markers: LatLng[];
-  polyline: LatLng[];
-  center: LatLng;
-}
-
-function MapWithPath({
-  onAddMarker,
-  markers,
-  polyline,
-  center,
-}: MapWithPathProps) {
-  useMapEvents({
-    click(e) {
-      onAddMarker(e.latlng);
-    },
-  });
-
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo(center, 15);
-  }, [center, map]);
-
-  return (
-    <>
-      {markers.map((position, idx) => (
-        <Marker key={idx} position={position} icon={customIcon} />
-      ))}
-      <Polyline positions={polyline} color="teal" />
-    </>
-  );
-}
+import MapWithPath from "./components/MapWithPath";
+import { BasicControls, PathControls } from "./components/MapControls";
 
 function App() {
   const [markers, setMarkers] = useState<LatLng[]>([]);
@@ -97,12 +37,8 @@ function App() {
     onClose: onCloseUserGuide,
   } = useDisclosure();
 
-  const addMarker = (latlng: LatLng) => {
-    const newMarkers = [...markers, latlng];
-    setMarkers(newMarkers);
-    calculateDistance(newMarkers);
-  };
-
+  // Core functionality
+  // Calculate the total distance of a path
   const calculateDistance = useCallback((markers: LatLng[]) => {
     let distance = 0;
     for (let i = 0; i < markers.length - 1; i++) {
@@ -110,14 +46,23 @@ function App() {
       const to = turf.point([markers[i + 1].lng, markers[i + 1].lat]);
       distance += turf.distance(from, to, { units: "meters" });
     }
-
     setTotalDistance(distance);
   }, []);
 
-  const resetMarkers = () => {
+  // Add a new marker to the path
+  const addMarker = useCallback(
+    (latlng: LatLng) => {
+      const newMarkers = [...markers, latlng];
+      setMarkers(newMarkers);
+      calculateDistance(newMarkers);
+    },
+    [markers, calculateDistance],
+  );
+
+  const resetMarkers = useCallback(() => {
     setMarkers([]);
     setTotalDistance(0);
-  };
+  }, []);
 
   const removeLastMarker = useCallback(() => {
     if (markers.length > 0) {
@@ -128,7 +73,18 @@ function App() {
     }
   }, [markers, calculateDistance]);
 
-  // Add keyboard shortcut listener
+  const getLocation = useCallback(() => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latlng = new LatLng(
+        position.coords.latitude,
+        position.coords.longitude,
+      );
+      addMarker(latlng);
+      setCenter(latlng);
+    });
+  }, [addMarker, setCenter]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Check for Ctrl+Z or Cmd+Z
@@ -155,16 +111,6 @@ function App() {
     };
   }, [removeLastMarker, onOpenSaveModal, markers]);
 
-  const getLocation = () => {
-    navigator.geolocation.getCurrentPosition((position) => {
-      const latlng = new LatLng(
-        position.coords.latitude,
-        position.coords.longitude,
-      );
-      setCenter(latlng);
-    });
-  };
-
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={4} align="stretch">
@@ -174,22 +120,15 @@ function App() {
         <Text fontSize="xl" textAlign="center">
           Total Distance: {(totalDistance / 1000).toFixed(2)} km
         </Text>
-        <HStack spacing={2} justify={"center"}>
-          <IconButton
-            icon={<FaLocationDot />}
-            aria-label="Get Location"
-            colorScheme="teal"
-            onClick={getLocation}
-          ></IconButton>
-          <Button colorScheme="teal" onClick={resetMarkers}>
-            Reset Markers
-          </Button>
-          <Button colorScheme="teal" onClick={removeLastMarker}>
-            Remove Last Marker
-          </Button>
-        </HStack>
+
+        <BasicControls
+          onGetLocation={getLocation}
+          onResetMarkers={resetMarkers}
+          onRemoveLastMarker={removeLastMarker}
+        />
+
         <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
-          <MapContainer center={center} zoom={13} style={{ height: "70vh" }}>
+          <MapContainer center={center} zoom={15} style={{ height: "70vh" }}>
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -202,26 +141,14 @@ function App() {
             />
           </MapContainer>
         </Box>
-        <HStack spacing={2} justify={"center"} mb={2}>
-          <Button
-            leftIcon={<BsSave />}
-            onClick={onOpenSaveModal}
-            variant="outline"
-            colorScheme="orange"
-            isDisabled={markers.length < 2}
-          >
-            Save path
-          </Button>
-          <Button
-            leftIcon={<AiOutlineFolder />}
-            onClick={onOpenLoadModal}
-            variant="outline"
-            colorScheme="orange"
-          >
-            Load path
-          </Button>
-        </HStack>
-        {/*modals*/}
+
+        <PathControls
+          onOpenSaveModal={onOpenSaveModal}
+          onOpenLoadModal={onOpenLoadModal}
+          markersLength={markers.length}
+        />
+
+        {/* Modals */}
         <SavePathModal
           isOpen={isSaveModalOpen}
           onClose={onCloseSaveModal}
@@ -243,7 +170,9 @@ function App() {
         />
         <UserGuideModal isOpen={isUserGuideOpen} onClose={onCloseUserGuide} />
       </VStack>
-      <Box textAlign="center" mt={2}>
+
+      {/* Footer */}
+      <Box as="footer" mt={8} textAlign="center" pb={4}>
         <Text
           as="span"
           color="teal.500"
